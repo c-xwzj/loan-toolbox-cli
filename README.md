@@ -1,4 +1,4 @@
-# falconshop/loan-toolbox-cli
+# falconshop/loan-ops-commands
 
 Toolbox 远程运维命令库。核心逻辑只维护一份，各国 `*-loan-api`（贷超）/ `*-core-admin`（信贷）/ `*-pay`（支付）通过 Composer 安装薄命令入口，由 toolbox SSH 远程调用。
 
@@ -24,86 +24,28 @@ Toolbox 远程运维命令库。核心逻辑只维护一份，各国 `*-loan-api
 
 ---
 
-## 一、发布到 Git（维护者）
-
-新增/修改 `src/` 共享逻辑时，须在 **PHP 7.4** 下可运行（贷超 `*-loan-api` 仍为此版本）。`hyperf/Repay/`、`laravel/` 适配层可按目标项目使用更高版本 API，但勿把 PHP 8 语法泄漏到 `src/`。
-
-```bash
-cd /path/to/loan-toolbox-cli
-git init
-git add .
-git commit -m "feat: initial loan-toolbox-cli with admin sync/disable"
-git remote add origin git@github.com:c-xwzj/loan-toolbox-cli.git
-git push -u origin main
-git tag v1.0.0
-git push origin v1.0.0
-```
+> 将 `YOUR_GIT_HOST` 换成实际 Git 地址（GitHub / GitLab / Gitee 等）。
 
 ---
 
 ## 二、安装（各国业务项目）
 
-### 2.1 配置 Composer 私有源
+### 安装命令
 
-在目标项目根目录的 `composer.json` 中增加 `repositories`（**只需配置一次**）：
-
-```json
-{
-  "repositories": [
-    {
-      "type": "vcs",
-      "url": "git@github.com:c-xwzj/loan-toolbox-cli.git",
-      "no-api": true
-    }
-  ]
-}
-```
-
-> **私有仓库必加 `"no-api": true`**，让 Composer 直接 `git clone`（走 SSH），不走 GitHub API（未鉴权会 404）。
-
-服务器配置 **SSH Deploy Key**（一次性），确认能拉代码：
+在项目根目录执行：
 
 ```bash
-ssh -T git@github.com
-git ls-remote git@github.com:c-xwzj/loan-toolbox-cli.git
-```
+# 1. 先告诉 Composer 去哪找这个包
+composer config repositories.loan-toolbox-cli vcs https://github.com/c-xwzj/loan-toolbox-cli.git
 
-Deploy Key 配置步骤见下文「私有仓库 SSH 部署」。
+# 2. 再安装
+composer require falconshop/loan-toolbox-cli:dev-main --no-interaction
 
-### 2.2 私有仓库 SSH 部署（不用 Token）
-
-在**服务器容器内**执行一次：
-
-```bash
-# 1. 生成密钥（一路回车）
-ssh-keygen -t ed25519 -C "za-loan-api-deploy" -f ~/.ssh/id_ed25519 -N ""
-
-# 2. 打印公钥，复制到 GitHub
-cat ~/.ssh/id_ed25519.pub
-```
-
-GitHub 打开 `c-xwzj/loan-toolbox-cli` → **Settings** → **Deploy keys** → **Add deploy key** → 粘贴公钥 → 保存（只读即可）。
-
-```bash
 # 3. 验证
-ssh -T git@github.com
-git ls-remote git@github.com:c-xwzj/loan-toolbox-cli.git
-
-# 4. 安装
-cd /www/sites/za-loan-api
-composer update falconshop/loan-toolbox-cli
+composer show falconshop/loan-toolbox-cli
+ls vendor/falconshop/loan-toolbox-cli
 rm -rf runtime/container
-php bin/hyperf.php | grep admin:account
-```
-
-`composer.json` 保持：
-
-```json
-"repositories": [{
-  "type": "vcs",
-  "url": "git@github.com:c-xwzj/loan-toolbox-cli.git",
-  "no-api": true
-}]
+php bin/hyperf.php | grep admin:account    安装步骤写到  loan-toolbox-cli 文件下 完善整理文档
 ```
 
 ### 2.3 贷超 `*-loan-api`（Hyperf 2，PHP >= 7.4）
@@ -227,67 +169,3 @@ php bin/hyperf.php repay:manual-callback 1234567890 50000 TXN-20260101 -j
 ```json
 {"success":false,"message":"权限组不存在或已禁用 id=99"}
 ```
-
----
-
-## 四、与 toolbox 配合
-
-toolbox 通过 SSH 在目标服务器执行上述命令，**不再直连写各国数据库**。
-
-| 后台 | projects.name | 命令入口 |
-|------|---------------|----------|
-| 贷超 | `{country}-loan-api` | `php bin/hyperf.php ... -j` |
-| 信贷 | `{country}-core-admin` | `php artisan ... --json` |
-| 支付 | `{country}-pay` | `php bin/hyperf.php repay:manual-callback ... -j` |
-
-示例：`ng-loan-api`、`bd-core-admin`、`ng-pay`（`env_type` 0=测试，1=生产）。
-
-部署到服务器后，在 toolbox 后台「账号同步」「还款回调补单」页面即可使用；日志见 toolbox `storage/logs/admin_account_sync.log`、`payment_callback.log`。
-
----
-
-## 五、升级
-
-```bash
-composer update falconshop/loan-toolbox-cli
-```
-
-建议维护者发版打 tag，各国项目锁定 `^1.0` 按需升级。
-
----
-
-## 六、本地 path 开发（可选）
-
-**服务器 / 测试环境请用第二节的 `vcs` 源**（`composer.json` 里配置 Git 地址）。`path` 仅本机联调，不要提交到各国项目仓库。
-
-本机若与 `loan-toolbox-cli` 同目录，可临时覆盖为 path（不改已提交的 `composer.json`）：
-
-```bash
-composer config repositories.loan-toolbox-cli '{"type":"path","url":"../../loan-toolbox-cli","options":{"symlink":true}}'
-composer update falconshop/loan-toolbox-cli
-```
-
-恢复为 Git 源：
-
-```bash
-composer config --unset repositories.loan-toolbox-cli
-composer update falconshop/loan-toolbox-cli
-```
-
----
-
-## 七、目录结构
-
-```
-src/Admin/AdminAccountHandler.php       # 核心业务（一份）
-src/Repay/RepayManualCallbackHandler.php
-src/Contract/AdminRepositoryInterface.php
-src/Contract/RepayRecordRepositoryInterface.php
-hyperf/Admin/MarketAdminRepository.php  # 贷超 admin 表
-hyperf/Repay/RepayRecordRepository.php  # 支付 repay_record 表
-laravel/Admin/CoreAdminRepository.php   # 信贷 admin 表
-hyperf/Command/                         # Hyperf 命令入口
-laravel/Commands/                       # Artisan 命令入口
-```
-
-后续新功能在 `src/` 下新增模块目录即可，各国 `composer update` 升级。
