@@ -1,0 +1,35 @@
+{
+  "name": "falconshop/loan-toolbox-cli",
+  "description": "Toolbox remote CLI commands (PHP >=7.4; loan-api Hyperf2, core-admin Laravel PHP8, pay Hyperf3 PHP8)",
+  "type": "library",
+  "license": "proprietary",
+  "require": {
+    "php": ">=7.4",
+    "ext-json": "*"
+  },
+  "suggest": {
+    "hyperf/command": "Hyperf CLI commands for loan-api",
+    "hyperf/db-connection": "Database access in loan-api",
+    "illuminate/console": "Artisan commands for core-admin",
+    "illuminate/database": "Database access in core-admin"
+  },
+  "autoload": {
+    "psr-4": {
+      "Falconshop\\LoanOps\\": "src/",
+      "Falconshop\\LoanOps\\Hyperf\\": "hyperf/",
+      "Falconshop\\LoanOps\\Laravel\\": "laravel/"
+    }
+  },
+  "minimum-stability": "dev",
+  "prefer-stable": true,
+  "extra": {
+    "laravel": {
+      "providers": [
+        "Falconshop\\LoanOps\\Laravel\\LoanOpsServiceProvider"
+      ]
+    },
+    "hyperf": {
+      "config": "Falconshop\\LoanOps\\Hyperf\\ConfigProvider"
+    }
+  }
+}
