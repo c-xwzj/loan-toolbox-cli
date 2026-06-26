@@ -45,8 +45,14 @@ composer require falconshop/loan-toolbox-cli:dev-main --no-interaction
 composer show falconshop/loan-toolbox-cli
 ls vendor/falconshop/loan-toolbox-cli
 rm -rf runtime/container
-php bin/hyperf.php | grep admin:account    安装步骤写到  loan-toolbox-cli 文件下 完善整理文档
+
+# 更新
+composer require falconshop/loan-toolbox-cli:dev-main --no-interaction
+rm -rf runtime/container
+php bin/hyperf.php | grep admin:account-enable
 ```
+
+
 
 ### 2.3 贷超 `*-loan-api`（Hyperf 2，PHP >= 7.4）
 
