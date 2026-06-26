@@ -24,7 +24,9 @@ interface AdminRepositoryInterface
     public function update(int $id, array $data): void;
 
     /**
-     * @return array{already_disabled: bool}
+     * @param int $enabled 0=禁用 1=启用
+     *
+     * @return array{already_in_state: bool}
      */
-    public function disable(string $account): array;
+    public function setEnabled(string $account, int $enabled): array;
 }

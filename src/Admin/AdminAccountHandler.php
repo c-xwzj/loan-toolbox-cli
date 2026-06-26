@@ -95,10 +95,10 @@ class AdminAccountHandler
     }
 
     /**
-     * @param array<string, mixed> $payload
+     * @param array<string, mixed> $payload account + enabled(0|1)
      * @return array{exit_code: int, line: string, payload: array<string, mixed>}
      */
-    public function disable(array $payload): array
+    public function setStatus(array $payload): array
     {
         try {
             $account = trim((string) ($payload['account'] ?? ''));
@@ -106,17 +106,31 @@ class AdminAccountHandler
                 throw new OpsCommandException('account 不能为空');
             }
 
+            if (!array_key_exists('enabled', $payload)) {
+                throw new OpsCommandException('enabled 不能为空，取值为 0 或 1');
+            }
+
+            $enabled = (int) $payload['enabled'];
+            if (!in_array($enabled, [0, 1], true)) {
+                throw new OpsCommandException('enabled 必须为 0 或 1');
+            }
+
             $existing = $this->repository->findByAccount($account);
             if ($existing === null) {
                 throw new OpsCommandException("账号不存在：{$account}");
             }
 
-            $result = $this->repository->disable($account);
-            $message = $result['already_disabled'] ? '账号已是禁用状态' : '账号已关闭';
+            $result = $this->repository->setEnabled($account, $enabled);
+            if ($result['already_in_state']) {
+                $message = $enabled ? '账号已是启用状态' : '账号已是禁用状态';
+            } else {
+                $message = $enabled ? '账号已开启' : '账号已关闭';
+            }
 
             return JsonCommandResult::success($message, [
                 'admin_id' => (int) ($existing['id'] ?? 0),
-                'already_disabled' => (bool) $result['already_disabled'],
+                'enabled' => $enabled,
+                'already_in_state' => (bool) $result['already_in_state'],
             ]);
         } catch (OpsCommandException $e) {
             return JsonCommandResult::failure($e->getMessage());

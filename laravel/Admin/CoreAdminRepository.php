@@ -46,18 +46,20 @@ class CoreAdminRepository implements AdminRepositoryInterface
         ]);
     }
 
-    public function disable(string $account): array
+    public function setEnabled(string $account, int $enabled): array
     {
         $row = $this->findByAccount($account);
         if ($row === null) {
-            return ['already_disabled' => false];
+            return ['already_in_state' => false];
         }
 
-        $alreadyDisabled = (int) ($row['status'] ?? 0) !== 1;
-        if (!$alreadyDisabled) {
-            DB::table('admin')->where('id', $row['id'])->update(['status' => 2]);
+        $targetStatus = $enabled ? 1 : 2;
+        $currentStatus = (int) ($row['status'] ?? 0);
+        $alreadyInState = $currentStatus === $targetStatus;
+        if (!$alreadyInState) {
+            DB::table('admin')->where('id', $row['id'])->update(['status' => $targetStatus]);
         }
 
-        return ['already_disabled' => $alreadyDisabled];
+        return ['already_in_state' => $alreadyInState];
     }
 }

@@ -8,13 +8,13 @@ use Falconshop\LoanOps\Admin\AdminAccountHandler;
 use Falconshop\LoanOps\Laravel\Admin\CoreAdminRepository;
 use Illuminate\Console\Command;
 
-class AdminAccountDisableCommand extends Command
+class AdminAccountStatusCommand extends Command
 {
     /** @var string */
-    protected $signature = 'admin:account-disable {payload} {--json}';
+    protected $signature = 'admin:account-status {payload} {--json}';
 
     /** @var string */
-    protected $description = '关闭信贷后台 admin 账号（toolbox 远程调用）';
+    protected $description = '设置信贷后台 admin 启用状态 enabled=0|1（toolbox 远程调用）';
 
     public function handle(): int
     {
@@ -24,7 +24,7 @@ class AdminAccountDisableCommand extends Command
         }
 
         $handler = new AdminAccountHandler(new CoreAdminRepository());
-        $result = $handler->disable($payload);
+        $result = $handler->setStatus($payload);
         $this->renderResult($result);
 
         return (int) $result['exit_code'];

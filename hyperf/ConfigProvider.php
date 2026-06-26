@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Falconshop\LoanOps\Hyperf;
 
-use Falconshop\LoanOps\Hyperf\Command\AdminAccountDisableCommand;
+use Falconshop\LoanOps\Hyperf\Command\AdminAccountStatusCommand;
 use Falconshop\LoanOps\Hyperf\Command\AdminAccountSyncCommand;
 use Falconshop\LoanOps\Hyperf\Command\RepayManualCallbackCommand;
 
@@ -18,7 +18,7 @@ class ConfigProvider
             $commands[] = RepayManualCallbackCommand::class;
         } else {
             $commands[] = AdminAccountSyncCommand::class;
-            $commands[] = AdminAccountDisableCommand::class;
+            $commands[] = AdminAccountStatusCommand::class;
         }
 
         return [

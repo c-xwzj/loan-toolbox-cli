@@ -7,7 +7,7 @@ Toolbox 远程运维命令库。核心逻辑只维护一份，各国 `*-loan-api
 | 模块 | 命令 | 适用项目 |
 |------|------|----------|
 | Admin | `admin:account-sync` | 同步后台账号（密码 hash 原样写入） |
-| Admin | `admin:account-disable` | 关闭（禁用）后台账号 |
+| Admin | `admin:account-status` | 设置账号启用状态（`enabled` 0=关闭 1=开启） |
 | Repay | `repay:manual-callback` | 还款回调补单（入队 `repay-callback-queue`） |
 
 ### PHP / 框架版本（安装前必读）
@@ -62,7 +62,7 @@ php bin/hyperf.php | grep admin:account
 
 ```
 admin:account-sync
-admin:account-disable
+admin:account-status
 ```
 
 > 若项目曾在 `commands.php` 手动注册过上述命令，可删除重复项；保留空数组 `return [];` 即可。
@@ -87,7 +87,7 @@ php artisan list | grep admin:account
 
 ```
 admin:account-sync
-admin:account-disable
+admin:account-status
 ```
 
 ### 2.5 支付 `*-pay`（Hyperf 3，PHP >= 8.0）
@@ -120,7 +120,8 @@ php bin/hyperf.php admin:account-sync '{"action":"create","username":"张三","a
 php bin/hyperf.php admin:account-sync '{"action":"update","username":"张三","account":"zhangsan","password":"$2y$10$...","group_id":5,"enabled":1,"admin_id":123}' -j
 
 # 关闭账号
-php bin/hyperf.php admin:account-disable '{"account":"zhangsan"}' -j
+php bin/hyperf.php admin:account-status '{"account":"zhangsan","enabled":0}' -j
+php bin/hyperf.php admin:account-status '{"account":"zhangsan","enabled":1}' -j
 ```
 
 ### 信贷（core-admin）
@@ -133,7 +134,8 @@ php artisan admin:account-sync '{"action":"create","username":"张三","account"
 php artisan admin:account-sync '{"action":"update","username":"张三","account":"zhangsan","password":"$2y$10$...","group_id":5,"enabled":1,"admin_id":123}' --json
 
 # 关闭账号
-php artisan admin:account-disable '{"account":"zhangsan"}' --json
+php artisan admin:account-status '{"account":"zhangsan","enabled":0}' --json
+php artisan admin:account-status '{"account":"zhangsan","enabled":1}' --json
 ```
 
 ### 支付（pay）

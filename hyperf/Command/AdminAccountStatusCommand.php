@@ -14,18 +14,18 @@ use Symfony\Component\Console\Input\InputOption;
 /**
  * @Command
  */
-class AdminAccountDisableCommand extends HyperfCommand
+class AdminAccountStatusCommand extends HyperfCommand
 {
     public function __construct()
     {
-        parent::__construct('admin:account-disable');
+        parent::__construct('admin:account-status');
     }
 
     public function configure()
     {
         parent::configure();
-        $this->setDescription('关闭贷超后台 admin 账号（toolbox 远程调用）');
-        $this->addArgument('payload', InputArgument::REQUIRED, 'JSON payload');
+        $this->setDescription('设置贷超后台 admin 启用状态 enabled=0|1（toolbox 远程调用）');
+        $this->addArgument('payload', InputArgument::REQUIRED, 'JSON: {"account":"...","enabled":0|1}');
         $this->addOption('json', 'j', InputOption::VALUE_NONE, '输出 JSON 结果');
     }
 
@@ -33,7 +33,7 @@ class AdminAccountDisableCommand extends HyperfCommand
     {
         $payload = $this->decodePayload((string) $this->input->getArgument('payload'));
         $handler = new AdminAccountHandler(new MarketAdminRepository());
-        $result = $handler->disable($payload);
+        $result = $handler->setStatus($payload);
         $this->renderResult($result, (bool) $this->input->getOption('json'));
 
         return $result['exit_code'];

@@ -51,21 +51,23 @@ class MarketAdminRepository implements AdminRepositoryInterface
         ]);
     }
 
-    public function disable(string $account): array
+    public function setEnabled(string $account, int $enabled): array
     {
         $row = $this->findByAccount($account);
         if ($row === null) {
-            return ['already_disabled' => false];
+            return ['already_in_state' => false];
         }
 
-        $alreadyDisabled = (int) ($row['enabled'] ?? 0) === 0;
-        if (!$alreadyDisabled) {
+        $target = $enabled ? 1 : 0;
+        $current = (int) ($row['enabled'] ?? 0);
+        $alreadyInState = $current === $target;
+        if (!$alreadyInState) {
             Db::table('admin')->where('id', $row['id'])->update([
-                'enabled' => 0,
+                'enabled' => $target,
                 'updated' => date('Y-m-d H:i:s'),
             ]);
         }
 
-        return ['already_disabled' => $alreadyDisabled];
+        return ['already_in_state' => $alreadyInState];
     }
 }

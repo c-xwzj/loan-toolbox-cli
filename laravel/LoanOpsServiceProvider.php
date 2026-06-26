@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Falconshop\LoanOps\Laravel;
 
-use Falconshop\LoanOps\Laravel\Commands\AdminAccountDisableCommand;
+use Falconshop\LoanOps\Laravel\Commands\AdminAccountStatusCommand;
 use Falconshop\LoanOps\Laravel\Commands\AdminAccountSyncCommand;
 use Illuminate\Support\ServiceProvider;
 
@@ -19,7 +19,7 @@ class LoanOpsServiceProvider extends ServiceProvider
         if ($this->app->runningInConsole()) {
             $this->commands([
                 AdminAccountSyncCommand::class,
-                AdminAccountDisableCommand::class,
+                AdminAccountStatusCommand::class,
             ]);
         }
     }
