@@ -29,4 +29,6 @@ interface AdminRepositoryInterface
      * @return array{already_in_state: bool}
      */
     public function setEnabled(string $account, int $enabled): array;
+
+    public function updatePassword(string $account, string $password): void;
 }

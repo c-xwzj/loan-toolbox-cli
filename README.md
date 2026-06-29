@@ -6,8 +6,10 @@ Toolbox 远程运维命令库。核心逻辑只维护一份，各国 `*-loan-api
 
 | 模块 | 命令 | 适用项目 |
 |------|------|----------|
-| Admin | `admin:account-sync` | 同步后台账号（密码 hash 原样写入） |
+| Admin | `admin:account-sync` | 创建/完整更新后台账号（密码 hash 原样写入） |
 | Admin | `admin:account-status` | 设置账号启用状态（`enabled` 0=关闭 1=开启） |
+| Admin | `admin:password-reset` | 仅更新密码 hash，不改权限组/用户名 |
+| Credit | `credit:overdue-simulate` | 测试环境逾期入催模拟（改 `repay_plan.due_date` + `collection:into`） |
 | Repay | `repay:manual-callback` | 还款回调补单（入队 `repay-callback-queue`） |
 
 ### PHP / 框架版本（安装前必读）
@@ -17,7 +19,8 @@ Toolbox 远程运维命令库。核心逻辑只维护一份，各国 `*-loan-api
 | 项目类型 | PHP | 框架 | 安装模块 | `commands.php` 注册 |
 |----------|-----|------|----------|---------------------|
 | `*-loan-api`（贷超） | **>= 7.4** | Hyperf **2.x** | Admin | `composer require` 即可（ConfigProvider 自动注册） |
-| `*-core-admin`（信贷） | **>= 8.0** | Laravel | Admin | 无需（`LoanOpsServiceProvider` 自动发现） |
+| `*-core-admin`（信贷后台） | **>= 8.0** | Laravel | Admin | 无需（`LoanOpsServiceProvider` 自动发现） |
+| `*-core-api`（信贷核心） | **>= 8.0** | Hyperf **3.x** | Credit | `composer require` 即可（检测到 `IntoCollectionCommand` 后自动注册） |
 | `*-pay`（支付） | **>= 8.0** | Hyperf **3.x** | Repay | `composer require` 即可（检测到 `RepayCallbackQueue` 后自动注册） |
 
 > **注意**：`repay:manual-callback` 仅部署在 `*-pay`（PHP 8 + Hyperf 3），**不要**装到 `*-loan-api`（PHP 7.4 + Hyperf 2）。贷超项目只注册 Admin 命令即可。

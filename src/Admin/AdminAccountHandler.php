@@ -138,4 +138,38 @@ class AdminAccountHandler
             return JsonCommandResult::failure($e->getMessage());
         }
     }
+
+    /**
+     * @param array<string, mixed> $payload account + password（hash 原样写入）
+     * @return array{exit_code: int, line: string, payload: array<string, mixed>}
+     */
+    public function resetPassword(array $payload): array
+    {
+        try {
+            $account = trim((string) ($payload['account'] ?? ''));
+            if ($account === '') {
+                throw new OpsCommandException('account 不能为空');
+            }
+
+            $password = (string) ($payload['password'] ?? '');
+            if ($password === '') {
+                throw new OpsCommandException('password 不能为空');
+            }
+
+            $existing = $this->repository->findByAccount($account);
+            if ($existing === null) {
+                throw new OpsCommandException("账号不存在：{$account}");
+            }
+
+            $this->repository->updatePassword($account, $password);
+
+            return JsonCommandResult::success('密码已更新', [
+                'admin_id' => (int) ($existing['id'] ?? 0),
+            ]);
+        } catch (OpsCommandException $e) {
+            return JsonCommandResult::failure($e->getMessage());
+        } catch (\Throwable $e) {
+            return JsonCommandResult::failure($e->getMessage());
+        }
+    }
 }

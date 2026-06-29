@@ -6,6 +6,7 @@ namespace Falconshop\LoanOps\Laravel;
 
 use Falconshop\LoanOps\Laravel\Commands\AdminAccountStatusCommand;
 use Falconshop\LoanOps\Laravel\Commands\AdminAccountSyncCommand;
+use Falconshop\LoanOps\Laravel\Commands\AdminPasswordResetCommand;
 use Illuminate\Support\ServiceProvider;
 
 class LoanOpsServiceProvider extends ServiceProvider
@@ -20,6 +21,7 @@ class LoanOpsServiceProvider extends ServiceProvider
             $this->commands([
                 AdminAccountSyncCommand::class,
                 AdminAccountStatusCommand::class,
+                AdminPasswordResetCommand::class,
             ]);
         }
     }

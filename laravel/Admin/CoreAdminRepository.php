@@ -62,4 +62,11 @@ class CoreAdminRepository implements AdminRepositoryInterface
 
         return ['already_in_state' => $alreadyInState];
     }
+
+    public function updatePassword(string $account, string $password): void
+    {
+        DB::table('admin')->where('account', $account)->update([
+            'password' => $password,
+        ]);
+    }
 }

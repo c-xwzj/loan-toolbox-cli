@@ -70,4 +70,12 @@ class MarketAdminRepository implements AdminRepositoryInterface
 
         return ['already_in_state' => $alreadyInState];
     }
+
+    public function updatePassword(string $account, string $password): void
+    {
+        Db::table('admin')->where('name', $account)->update([
+            'password' => $password,
+            'updated' => date('Y-m-d H:i:s'),
+        ]);
+    }
 }
