@@ -23,9 +23,9 @@ final class CreditDateHelper
         }
 
         $days = $daysOpt !== null && $daysOpt !== '' ? (int) $daysOpt : 3;
-        if ($days < 1) {
-            throw new \InvalidArgumentException('days 必须大于等于 1');
-        }
+//        if ($days < 1) {
+//            throw new \InvalidArgumentException('days 必须大于等于 1');
+//        }
 
         return self::nowTimestamp($timezone) - ($days * 86400);
     }
