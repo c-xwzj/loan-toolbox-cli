@@ -12,7 +12,7 @@ final class CreditDateHelper
     public static function resolveDueDate(string $timezone, $daysOpt, $dueDateOpt): int
     {
         if ($dueDateOpt !== null && $dueDateOpt !== '') {
-            $dueDateStr = trim((string) $dueDateOpt);
+            $dueDateStr = trim((string)$dueDateOpt);
             if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $dueDateStr)) {
                 throw new \InvalidArgumentException('due-date 格式须为 YYYY-MM-DD');
             }
@@ -22,7 +22,7 @@ final class CreditDateHelper
             return $end;
         }
 
-        $days = $daysOpt !== null && $daysOpt !== '' ? (int) $daysOpt : 3;
+        $days = (int)$daysOpt ?? 0;
 //        if ($days < 1) {
 //            throw new \InvalidArgumentException('days 必须大于等于 1');
 //        }
