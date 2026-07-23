@@ -19,7 +19,7 @@ class OverdueSimulateHandler
     public function __construct(RepayPlanRepositoryInterface $repository, string $timezone)
     {
         $this->repository = $repository;
-        $this->timezone = $timezone !== '' ? $timezone : 'UTC';
+        $this->timezone = CreditDateHelper::assertValidTimezone($timezone !== '' ? $timezone : 'UTC');
     }
 
     /**
@@ -62,6 +62,7 @@ class OverdueSimulateHandler
             $dueDate = CreditDateHelper::resolveDueDate($this->timezone, $daysOpt, $dueDateOpt);
             $oldDueDate = (int) ($plan['due_date'] ?? 0);
             $planSn = $plan['plan_sn'];
+            $localToday = CreditDateHelper::todayYmd($this->timezone);
 
             $this->repository->updateDueDate($sn, $planSn, $termSeq, $dueDate);
 
@@ -69,6 +70,8 @@ class OverdueSimulateHandler
                 'sn' => $sn,
                 'plan_sn' => $planSn,
                 'term_seq' => $termSeq,
+                'timezone' => $this->timezone,
+                'local_today' => $localToday,
                 'old_due_date' => $oldDueDate,
                 'new_due_date' => $dueDate,
                 'skip_into' => $skipInto,
@@ -88,6 +91,8 @@ class OverdueSimulateHandler
                 'sn' => $sn,
                 'plan_sn' => $planSn,
                 'term_seq' => $termSeq,
+                'timezone' => $this->timezone,
+                'local_today' => $localToday,
                 'old_due_date' => $oldDueDate,
                 'due_date' => $dueDate,
                 'due_date_text' => CreditDateHelper::formatDueDateText($this->timezone, $dueDate),

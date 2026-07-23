@@ -9,44 +9,62 @@ final class CreditDateHelper
     /**
      * @throws \InvalidArgumentException
      */
-    public static function resolveDueDate(string $timezone, $daysOpt, $dueDateOpt): int
+    public static function assertValidTimezone(string $timezone): string
     {
-        if ($dueDateOpt !== null && $dueDateOpt !== '') {
-            $dueDateStr = trim((string)$dueDateOpt);
-            if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $dueDateStr)) {
-                throw new \InvalidArgumentException('due-date 格式须为 YYYY-MM-DD');
-            }
-
-            [, $end] = self::dayBoundsFromDateStr($timezone, $dueDateStr);
-
-            return $end;
+        $timezone = trim($timezone);
+        if ($timezone === '') {
+            throw new \InvalidArgumentException('timezone 不能为空');
         }
 
-        $days = (int)$daysOpt ?? 0;
-//        if ($days < 1) {
-//            throw new \InvalidArgumentException('days 必须大于等于 1');
-//        }
+        try {
+            new \DateTimeZone($timezone);
+        } catch (\Exception $e) {
+            throw new \InvalidArgumentException("无效时区：{$timezone}");
+        }
 
-        return self::nowTimestamp($timezone) - ($days * 86400);
+        return $timezone;
+    }
+
+    /**
+     * 按国家时区解析到期日（当天 23:59:59）。
+     * due-date 优先；否则相对该时区「今天」往前推 days 个自然日（默认 3）。
+     *
+     * @throws \InvalidArgumentException
+     */
+    public static function resolveDueDate(string $timezone, $daysOpt, $dueDateOpt): int
+    {
+        $tz = new \DateTimeZone(self::assertValidTimezone($timezone));
+
+        if ($dueDateOpt !== null && $dueDateOpt !== '') {
+            $ymd = trim((string) $dueDateOpt);
+            if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $ymd)) {
+                throw new \InvalidArgumentException('due-date 格式须为 YYYY-MM-DD');
+            }
+            $d = new \DateTime($ymd . ' 23:59:59', $tz);
+
+            return $d->getTimestamp();
+        }
+
+        $days = ($daysOpt !== null && $daysOpt !== '') ? (int) $daysOpt : 3;
+        if ($days < 1) {
+            throw new \InvalidArgumentException('days 必须大于等于 1');
+        }
+
+        $d = new \DateTime('now', $tz);
+        $d->setTime(23, 59, 59);
+        $d->modify('-' . $days . ' days');
+
+        return $d->getTimestamp();
+    }
+
+    public static function todayYmd(string $timezone): string
+    {
+        return (new \DateTime('now', new \DateTimeZone($timezone)))->format('Y-m-d');
     }
 
     public static function nowTimestamp(string $timezone): int
     {
         return (new \DateTime('now', new \DateTimeZone($timezone)))->getTimestamp();
-    }
-
-    /**
-     * @return array{0: int, 1: int}
-     */
-    public static function dayBoundsFromDateStr(string $timezone, string $dateYmd): array
-    {
-        $tz = new \DateTimeZone($timezone);
-        $d = new \DateTime($dateYmd . ' 00:00:00', $tz);
-        $start = $d->getTimestamp();
-        $d->setTime(23, 59, 59);
-        $end = $d->getTimestamp();
-
-        return [$start, $end];
     }
 
     public static function formatDueDateText(string $timezone, int $dueDate): string
