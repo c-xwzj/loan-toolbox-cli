@@ -24,5 +24,5 @@ interface RepayPlanRepositoryInterface
     /**
      * @throws \Throwable
      */
-    public function updateDueDate(string $sn, $planSn, int $termSeq, int $dueDate): int;
+    public function updateDueDate(string $sn, $planSn, int $termSeq, int $dueDate, int $startDate): int;
 }

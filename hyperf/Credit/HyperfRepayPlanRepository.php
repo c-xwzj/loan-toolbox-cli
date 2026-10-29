@@ -33,7 +33,7 @@ class HyperfRepayPlanRepository implements RepayPlanRepositoryInterface
         return $row ? (array) $row : null;
     }
 
-    public function updateDueDate(string $sn, $planSn, int $termSeq, int $dueDate): int
+    public function updateDueDate(string $sn, $planSn, int $termSeq, int $dueDate, int $startDate): int
     {
         $oldDueDate = 0;
 
@@ -47,12 +47,22 @@ class HyperfRepayPlanRepository implements RepayPlanRepositoryInterface
             Db::table('repay_plan')
                 ->where('plan_sn', $planSn)
                 ->update([
+                    'start_date' => $startDate,
                     'due_date' => $dueDate,
                     'overdue_days' => 0,
                 ]);
 
             if ($termSeq === 1) {
-                Db::table('loan')->where('sn', $sn)->update(['due_date' => $dueDate]);
+                Db::table('loan')->where('sn', $sn)->update([
+                    'start_date' => $startDate,
+                    'due_date' => $dueDate,
+                    'disbursed_time' => $startDate,
+                ]);
+                // Scheme2 利息按 application.apply_time→今天 日历差；必须与起息日对齐
+                Db::table('application')->where('sn', $sn)->update([
+                    'disbursed_time' => $startDate,
+                    'apply_time' => $startDate,
+                ]);
             }
 
             Db::commit();

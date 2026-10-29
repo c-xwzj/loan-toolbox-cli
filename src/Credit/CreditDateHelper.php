@@ -57,6 +57,37 @@ final class CreditDateHelper
         return $d->getTimestamp();
     }
 
+    /**
+     * 由到期日反推起息/下单日 00:00:00（业务时区自然日）.
+     * 与信贷 loan_core_due_end_ts_from_apply 一致：到期日 = 下单日 + term 天的 23:59:59.
+     * 例：term=1、到期 10-28 23:59:59 → 起息 10-27 00:00:00；今天 10-29 计息天=2.
+     */
+    public static function startFromDue(int $dueDate, int $term, string $timezone = 'UTC'): int
+    {
+        if ($term < 1) {
+            throw new \InvalidArgumentException('term 必须大于等于 1');
+        }
+
+        $tz = new \DateTimeZone(self::assertValidTimezone($timezone));
+        $apply = (new \DateTime('@' . $dueDate))->setTimezone($tz)->setTime(0, 0, 0);
+        $apply->modify('-' . $term . ' days');
+
+        return $apply->getTimestamp();
+    }
+
+    /**
+     * 下单日 0 点 → 今天 0 点的日历天数（最少 1），与 FeeCalculate::scheme2EarlySettleQuote 一致.
+     */
+    public static function interestDaysUntilToday(int $applyStartTs, string $timezone): int
+    {
+        $tz = new \DateTimeZone(self::assertValidTimezone($timezone));
+        $applyDay = (new \DateTime('@' . $applyStartTs))->setTimezone($tz)->setTime(0, 0, 0);
+        $today = (new \DateTime('now', $tz))->setTime(0, 0, 0);
+        $days = (int) $applyDay->diff($today)->days;
+
+        return max(1, $days);
+    }
+
     public static function todayYmd(string $timezone): string
     {
         return (new \DateTime('now', new \DateTimeZone($timezone)))->format('Y-m-d');

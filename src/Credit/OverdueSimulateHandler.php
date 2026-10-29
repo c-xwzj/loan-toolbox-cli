@@ -60,11 +60,19 @@ class OverdueSimulateHandler
             }
 
             $dueDate = CreditDateHelper::resolveDueDate($this->timezone, $daysOpt, $dueDateOpt);
+            $term = (int) ($plan['term'] ?? $loan['term'] ?? 0);
+            if ($term < 1) {
+                throw new OpsCommandException('借款天数 term 无效，无法对齐起息日');
+            }
+            // 起息/下单日与到期日按自然日对齐；须回写 application.apply_time，否则 Scheme2 仍按下单「今天」计 1 天利息
+            $startDate = CreditDateHelper::startFromDue($dueDate, $term, $this->timezone);
             $oldDueDate = (int) ($plan['due_date'] ?? 0);
+            $oldStartDate = (int) ($plan['start_date'] ?? 0);
             $planSn = $plan['plan_sn'];
             $localToday = CreditDateHelper::todayYmd($this->timezone);
+            $expectedInterestDays = CreditDateHelper::interestDaysUntilToday($startDate, $this->timezone);
 
-            $this->repository->updateDueDate($sn, $planSn, $termSeq, $dueDate);
+            $this->repository->updateDueDate($sn, $planSn, $termSeq, $dueDate, $startDate);
 
             $this->logSimulate([
                 'sn' => $sn,
@@ -72,8 +80,12 @@ class OverdueSimulateHandler
                 'term_seq' => $termSeq,
                 'timezone' => $this->timezone,
                 'local_today' => $localToday,
+                'term' => $term,
+                'old_start_date' => $oldStartDate,
+                'new_start_date' => $startDate,
                 'old_due_date' => $oldDueDate,
                 'new_due_date' => $dueDate,
+                'expected_interest_days' => $expectedInterestDays,
                 'skip_into' => $skipInto,
             ]);
 
@@ -94,8 +106,14 @@ class OverdueSimulateHandler
                 'timezone' => $this->timezone,
                 'local_today' => $localToday,
                 'old_due_date' => $oldDueDate,
+                'old_start_date' => $oldStartDate,
+                'start_date' => $startDate,
+                'start_date_text' => CreditDateHelper::formatDueDateText($this->timezone, $startDate),
+                'apply_time' => $startDate,
+                'apply_time_text' => CreditDateHelper::formatDueDateText($this->timezone, $startDate),
                 'due_date' => $dueDate,
                 'due_date_text' => CreditDateHelper::formatDueDateText($this->timezone, $dueDate),
+                'expected_interest_days' => $expectedInterestDays,
                 'overdue_days' => isset($planAfter['overdue_days'])
                     ? (int) $planAfter['overdue_days']
                     : $overdueDays,

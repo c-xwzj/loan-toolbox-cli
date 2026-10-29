@@ -22,7 +22,7 @@ class CreditOverdueSimulateCommand extends HyperfCommand
     public function configure()
     {
         parent::configure();
-        $this->setDescription('测试环境：调整还款计划到期日并执行 collection:into（toolbox 远程调用）');
+        $this->setDescription('测试环境：对齐到期日/起息日/apply_time 并执行 collection:into（Scheme2 按日历计息）');
         $this->addArgument('sn', InputArgument::REQUIRED, '信贷订单号 loan.sn');
         $this->addOption('days', 'd', InputOption::VALUE_OPTIONAL, '逾期天数（相对国家时区今日，默认 3）', 3);
         $this->addOption('due-date', null, InputOption::VALUE_OPTIONAL, '指定到期日 YYYY-MM-DD（按国家时区解释）');

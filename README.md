@@ -9,7 +9,7 @@ Toolbox 远程运维命令库。核心逻辑只维护一份，各国 `*-loan-api
 | Admin | `admin:account-sync` | 创建/完整更新后台账号（密码 hash 原样写入） |
 | Admin | `admin:account-status` | 设置账号启用状态（`enabled` 0=关闭 1=开启） |
 | Admin | `admin:password-reset` | 仅更新密码 hash，不改权限组/用户名 |
-| Credit | `credit:overdue-simulate` | 测试环境逾期入催模拟（改 `repay_plan.due_date` + `collection:into`） |
+| Credit | `credit:overdue-simulate` | 测试环境逾期入催模拟（对齐到期日/起息日/`apply_time` + `collection:into`；Scheme2 利息按日历天） |
 | Repay | `repay:manual-callback` | 还款回调补单（入队 `repay-callback-queue`） |
 
 ### PHP / 框架版本（安装前必读）
@@ -146,6 +146,22 @@ php artisan admin:account-sync '{"action":"update","username":"张三","account"
 php artisan admin:account-status '{"account":"zhangsan","enabled":0}' --json
 php artisan admin:account-status '{"account":"zhangsan","enabled":1}' --json
 ```
+
+### 信贷核心（core-api）逾期模拟
+
+```bash
+# 相对国家时区「今天」往前拨到期日（默认逾期 3 天），并回写起息日 + application.apply_time
+php bin/hyperf.php credit:overdue-simulate {sn} --days=1 --timezone=Africa/Johannesburg -j
+
+# 指定到期日
+php bin/hyperf.php credit:overdue-simulate {sn} --due-date=2026-10-28 --timezone=Africa/Johannesburg -j
+```
+
+说明（Fair Loan / Scheme2）：
+
+- 利息按 **下单日 `apply_time` → 今天** 的日历天数计算，**不读** `overdue_days`。
+- 本命令会：`due_date` = 今天往前 N 天；`start_date`/`apply_time` = 到期日往前 `term` 天 00:00。
+- 例：`term=1`、`--days=1` → 今天看详情时 `expected_interest_days=2`（约 2 天利息），不是只改逾期状态仍按 1 天。
 
 ### 支付（pay）
 
