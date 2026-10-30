@@ -25,7 +25,7 @@ class AppConfigSyncCommand extends HyperfCommand
     {
         parent::configure();
         $this->setDescription('同步贷超 app_config（toolbox 远程调用）');
-        $this->addArgument('payload', InputArgument::REQUIRED, 'JSON payload');
+        $this->addArgument('payload', InputArgument::REQUIRED, 'JSON 或 base64(JSON) payload');
         $this->addOption('json', 'j', InputOption::VALUE_NONE, '输出 JSON 结果');
     }
 
@@ -40,10 +40,24 @@ class AppConfigSyncCommand extends HyperfCommand
     }
 
     /**
+     * 兼容裸 JSON 与 toolbox SSH 传入的 base64(JSON)。
+     *
      * @return array<string, mixed>
      */
     private function decodePayload(string $raw): array
     {
+        $raw = trim($raw);
+        if ($raw === '') {
+            return [];
+        }
+
+        if ($raw[0] !== '{' && $raw[0] !== '[') {
+            $decoded = base64_decode($raw, true);
+            if ($decoded !== false && $decoded !== '') {
+                $raw = $decoded;
+            }
+        }
+
         $payload = json_decode($raw, true);
 
         return is_array($payload) ? $payload : [];

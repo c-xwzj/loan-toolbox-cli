@@ -135,9 +135,9 @@ php bin/hyperf.php admin:account-sync '{"action":"update","username":"张三","a
 php bin/hyperf.php admin:account-status '{"account":"zhangsan","enabled":0}' -j
 php bin/hyperf.php admin:account-status '{"account":"zhangsan","enabled":1}' -j
 
-# App 配置增删改
+# App 配置增删改（本地可直接传 JSON；toolbox 远程调用传 base64(JSON)，避免中文/特殊字符经 SSH 被改写）
 php bin/hyperf.php app:config-sync '{"action":"create","app_id":1,"key":"shortUrl","value":"https://example.com","note":""}' -j
-php bin/hyperf.php app:config-sync '{"action":"update","id":10,"app_id":1,"key":"shortUrl","value":"https://example.com/v2","note":""}' -j
+php bin/hyperf.php app:config-sync '{"action":"update","id":10,"app_id":1,"key":"shortUrl","value":"https://example.com/v2","note":"需上传身份证用户比例%"}' -j
 php bin/hyperf.php app:config-sync '{"action":"delete","id":10}' -j
 ```
 
@@ -276,5 +276,6 @@ php bin/hyperf.php repay:manual-callback 1234567890 50000 TXN-20260101 -j
 
 | 日期 | 内容 |
 |------|------|
+| 2026-10-30 | `app:config-sync` 支持 base64(JSON) 入参，避免 SSH 链路剥中文导致 note 残缺 |
 | 2026-10-29 | 新增 `app:config-sync`：贷超 `app_config` 增删改，供 toolbox SSH 调用 |
 | 2026-10-29 | 逾期模拟：补充测试可读说明（逾期天数 vs 利息天数、验收字段、成功示例） |
