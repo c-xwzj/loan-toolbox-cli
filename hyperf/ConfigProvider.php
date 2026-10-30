@@ -7,6 +7,7 @@ namespace Falconshop\LoanOps\Hyperf;
 use Falconshop\LoanOps\Hyperf\Command\AdminAccountStatusCommand;
 use Falconshop\LoanOps\Hyperf\Command\AdminAccountSyncCommand;
 use Falconshop\LoanOps\Hyperf\Command\AdminPasswordResetCommand;
+use Falconshop\LoanOps\Hyperf\Command\AppConfigSyncCommand;
 use Falconshop\LoanOps\Hyperf\Command\CreditOverdueSimulateCommand;
 use Falconshop\LoanOps\Hyperf\Command\RepayManualCallbackCommand;
 
@@ -24,6 +25,7 @@ class ConfigProvider
             $commands[] = AdminAccountSyncCommand::class;
             $commands[] = AdminAccountStatusCommand::class;
             $commands[] = AdminPasswordResetCommand::class;
+            $commands[] = AppConfigSyncCommand::class;
         }
 
         return [

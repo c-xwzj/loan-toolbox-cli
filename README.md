@@ -9,7 +9,8 @@ Toolbox 远程运维命令库。核心逻辑只维护一份，各国 `*-loan-api
 | Admin | `admin:account-sync` | 创建/完整更新后台账号（密码 hash 原样写入） |
 | Admin | `admin:account-status` | 设置账号启用状态（`enabled` 0=关闭 1=开启） |
 | Admin | `admin:password-reset` | 仅更新密码 hash，不改权限组/用户名 |
-| Credit | `credit:overdue-simulate` | 测试环境逾期入催模拟（对齐到期日/起息日/`apply_time` + `collection:into`；Scheme2 利息按日历天） |
+| AppConfig | `app:config-sync` | 贷超 `app_config` 增删改（toolbox 远程调用） |
+| Credit | `credit:overdue-simulate` | 测试环境：把订单改成「已逾期 N 天」，App 利息与真实逾期一致 |
 | Repay | `repay:manual-callback` | 还款回调补单（入队 `repay-callback-queue`） |
 
 ### PHP / 框架版本（安装前必读）
@@ -18,7 +19,7 @@ Toolbox 远程运维命令库。核心逻辑只维护一份，各国 `*-loan-api
 
 | 项目类型 | PHP | 框架 | 安装模块 | `commands.php` 注册 |
 |----------|-----|------|----------|---------------------|
-| `*-loan-api`（贷超） | **>= 7.4** | Hyperf **2.x** | Admin | `composer require` 即可（ConfigProvider 自动注册） |
+| `*-loan-api`（贷超） | **>= 7.4** | Hyperf **2.x** | Admin + AppConfig | `composer require` 即可（ConfigProvider 自动注册） |
 | `*-core-admin`（信贷后台） | **>= 8.0** | Laravel | Admin | 无需（`LoanOpsServiceProvider` 自动发现） |
 | `*-core-api`（信贷核心） | **>= 8.0** | Hyperf **3.x** | Credit | `composer require` 即可（检测到 `IntoCollectionCommand` 后自动注册） |
 | `*-pay`（支付） | **>= 8.0** | Hyperf **3.x** | Repay | `composer require` 即可（检测到 `RepayCallbackQueue` 后自动注册） |
@@ -59,12 +60,12 @@ php bin/hyperf.php | grep admin:account-enable
 
 ### 2.3 贷超 `*-loan-api`（Hyperf 2，PHP >= 7.4）
 
-`composer require` 后包内 **Hyperf ConfigProvider** 会自动注册 Admin 命令，**无需**改 `config/autoload/commands.php`。
+`composer require` 后包内 **Hyperf ConfigProvider** 会自动注册 Admin / AppConfig 命令，**无需**改 `config/autoload/commands.php`。
 
 验证：
 
 ```bash
-php bin/hyperf.php | grep admin:account
+php bin/hyperf.php | grep -E 'admin:account|app:config-sync'
 ```
 
 应看到：
@@ -72,6 +73,8 @@ php bin/hyperf.php | grep admin:account
 ```
 admin:account-sync
 admin:account-status
+admin:password-reset
+app:config-sync
 ```
 
 > 若项目曾在 `commands.php` 手动注册过上述命令，可删除重复项；保留空数组 `return [];` 即可。
@@ -131,6 +134,17 @@ php bin/hyperf.php admin:account-sync '{"action":"update","username":"张三","a
 # 关闭账号
 php bin/hyperf.php admin:account-status '{"account":"zhangsan","enabled":0}' -j
 php bin/hyperf.php admin:account-status '{"account":"zhangsan","enabled":1}' -j
+
+# App 配置增删改
+php bin/hyperf.php app:config-sync '{"action":"create","app_id":1,"key":"shortUrl","value":"https://example.com","note":""}' -j
+php bin/hyperf.php app:config-sync '{"action":"update","id":10,"app_id":1,"key":"shortUrl","value":"https://example.com/v2","note":""}' -j
+php bin/hyperf.php app:config-sync '{"action":"delete","id":10}' -j
+```
+
+成功响应示例：
+
+```json
+{"success":true,"message":"创建成功","id":10}
 ```
 
 ### 信贷（core-admin）
@@ -149,19 +163,78 @@ php artisan admin:account-status '{"account":"zhangsan","enabled":1}' --json
 
 ### 信贷核心（core-api）逾期模拟
 
+**给谁用：** 测试要验「订单逾期后 App 利息 / 结清金额」，不想等自然到期。
+
+**一句话：** 把订单时间拨成「已经逾期 N 天」，再跑入催；App 看到的利息天数和真实逾期一样。
+
 ```bash
-# 相对国家时区「今天」往前拨到期日（默认逾期 3 天），并回写起息日 + application.apply_time
+# 常用：逾期 1 天（南非时区）
 php bin/hyperf.php credit:overdue-simulate {sn} --days=1 --timezone=Africa/Johannesburg -j
 
-# 指定到期日
+# 默认逾期 3 天
+php bin/hyperf.php credit:overdue-simulate {sn} --timezone=Africa/Johannesburg -j
+
+# 指定到期日（少用）
 php bin/hyperf.php credit:overdue-simulate {sn} --due-date=2026-10-28 --timezone=Africa/Johannesburg -j
 ```
 
-说明（Fair Loan / Scheme2）：
+#### 一、怎么理解「逾期天数」和「利息天数」（容易混）
 
-- 利息按 **下单日 `apply_time` → 今天** 的日历天数计算，**不读** `overdue_days`。
-- 本命令会：`due_date` = 今天往前 N 天；`start_date`/`apply_time` = 到期日往前 `term` 天 00:00。
-- 例：`term=1`、`--days=1` → 今天看详情时 `expected_interest_days=2`（约 2 天利息），不是只改逾期状态仍按 1 天。
+假设今天是 **10-29**，产品周期 **1 天**，命令 `--days=1`：
+
+| 概念 | 是什么 | 本例 |
+|------|--------|------|
+| 逾期天数 `--days` | 相对「到期日」过了几天（状态/入催用） | 1 |
+| 利息天数 | App 算利息：从**下单那天**数到**今天**（日历天） | **2** |
+
+时间轴（工具会自动改库对齐）：
+
+```
+10-27 下单/起息  →  10-28 到期  →  10-29 今天（已逾期 1 天）
+|<-------- 利息按 2 天算 -------->|
+```
+
+所以：**逾期 1 天 ≠ 只收 1 天利息**。1 天产品 + 逾期 1 天 → 详情里大约是 **2 天利息**（例如约 1.95，不是约 0.97）。
+
+利息封顶、应还公式见信贷业务文档《产品与计费》，不在本命令说明里。
+
+#### 跑完怎么验收
+
+1. 命令成功：`success: true`，且出现入催日志（插入罚息 / 更新放款 / 更新还款计划）。
+2. 看 JSON 关键字段：
+
+| 字段 | 含义 | 本例应接近 |
+|------|------|------------|
+| `apply_time_text` | 下单/起息日（已拨回） | `2026-10-27 00:00:00` |
+| `due_date_text` | 到期日 | `2026-10-28 23:59:59` |
+| `expected_interest_days` | 今天看详情应有的利息天数 | `2` |
+| `overdue_days` | 逾期天数 | `1` |
+| `plan_status` | `3` = 已逾期 | `3` |
+
+3. 打开 App / 后台订单详情，利息应接近「按 `expected_interest_days` 天」的金额。
+
+成功示例：
+
+```json
+{
+  "success": true,
+  "message": "逾期模拟完成",
+  "sn": "317932476342",
+  "local_today": "2026-10-29",
+  "apply_time_text": "2026-10-27 00:00:00",
+  "due_date_text": "2026-10-28 23:59:59",
+  "expected_interest_days": 2,
+  "overdue_days": 1,
+  "plan_status": 3,
+  "into_ran": true
+}
+```
+
+#### 注意
+
+- 仅测试环境；会改该单的到期日、起息日、下单时间，再执行真实入催。
+- 只改「已逾期」状态、不拨下单日 → App 利息仍会按「今天下单」只算约 1 天，和真实逾期不一致（本命令已避免）。
+- 多期订单默认改第 1 期；其他期用 `--term=2` 等。
 
 ### 支付（pay）
 
@@ -196,3 +269,12 @@ php bin/hyperf.php repay:manual-callback 1234567890 50000 TXN-20260101 -j
 ```json
 {"success":false,"message":"权限组不存在或已禁用 id=99"}
 ```
+
+---
+
+## 更新记录
+
+| 日期 | 内容 |
+|------|------|
+| 2026-10-29 | 新增 `app:config-sync`：贷超 `app_config` 增删改，供 toolbox SSH 调用 |
+| 2026-10-29 | 逾期模拟：补充测试可读说明（逾期天数 vs 利息天数、验收字段、成功示例） |
